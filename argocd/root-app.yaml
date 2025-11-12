@@ -23,14 +23,14 @@ spec:
   
   sources:
     # Platform infrastructure apps
-    - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+    - repoURL: https://github.com/rsvivek25/argocd-repo-blueprint.git  # CHANGE THIS
       targetRevision: main
       path: argocd
       directory:
         include: 'platform-apps.yaml'
     
     # Environment namespaces and quotas (sync wave 2)
-    - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+    - repoURL: https://github.com/rsvivek25/argocd-repo-blueprint.git  # CHANGE THIS
       targetRevision: main
       path: environments
       directory:
@@ -38,7 +38,7 @@ spec:
         include: '{namespace.yaml,resource-quota.yaml}'
     
     # Environment ApplicationSets (sync wave 3)
-    - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+    - repoURL: https://github.com/rsvivek25/argocd-repo-blueprint.git  # CHANGE THIS
       targetRevision: main
       path: environments
       directory:

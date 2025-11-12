@@ -14,7 +14,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+    repoURL: https://github.com/rsvivek25/argocd-repo-blueprint.git  # CHANGE THIS
     targetRevision: main
     path: platform/storage
   destination:
@@ -40,7 +40,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+    repoURL: https://github.com/rsvivek25/argocd-repo-blueprint.git  # CHANGE THIS
     targetRevision: main
     path: platform/node-pools
   destination:
