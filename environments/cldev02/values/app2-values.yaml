@@ -1,0 +1,43 @@
+# App2 overrides for cldev02
+
+image:
+  repository: your-registry.dkr.ecr.us-east-1.amazonaws.com/app2
+  pullPolicy: Always
+  tag: "dev-latest"
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app2-cldev02-role
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+env:
+  - name: ENVIRONMENT
+    value: "development"
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: NAMESPACE
+    value: "cldev02"
+  - name: STORAGE_PATH
+    value: "/data"
+
+ingress:
+  enabled: true
+  hosts:
+    - host: app2.cldev02.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+nodeSelector:
+  workload-type: general

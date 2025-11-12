@@ -1,0 +1,122 @@
+name: ArgoCD Sync
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'argocd/**'
+      - 'environments/**'
+      - 'platform/**'
+      - 'charts/**'
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to sync (all, cldev01, cldev02, clat01)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - cldev01
+          - cldev02
+          - clat01
+
+jobs:
+  argocd-sync:
+    name: Trigger ArgoCD Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/
+
+      - name: Login to ArgoCD
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+        run: |
+          argocd login $ARGOCD_SERVER \
+            --auth-token=$ARGOCD_AUTH_TOKEN \
+            --grpc-web
+
+      - name: Sync Platform Apps
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+        run: |
+          echo "Syncing platform infrastructure..."
+          argocd app sync platform-storage --grpc-web
+          argocd app sync platform-node-pools --grpc-web
+
+      - name: Sync Environment Apps
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+          TARGET_ENV: ${{ github.event.inputs.environment || 'all' }}
+        run: |
+          if [ "$TARGET_ENV" = "all" ] || [ "$TARGET_ENV" = "cldev01" ]; then
+            echo "Syncing cldev01 environment..."
+            argocd app sync cldev01-namespace --grpc-web
+            argocd app sync app1-cldev01 --grpc-web
+            argocd app sync app2-cldev01 --grpc-web
+          fi
+          
+          if [ "$TARGET_ENV" = "all" ] || [ "$TARGET_ENV" = "cldev02" ]; then
+            echo "Syncing cldev02 environment..."
+            argocd app sync cldev02-namespace --grpc-web
+            argocd app sync app1-cldev02 --grpc-web
+            argocd app sync app2-cldev02 --grpc-web
+          fi
+          
+          if [ "$TARGET_ENV" = "all" ] || [ "$TARGET_ENV" = "clat01" ]; then
+            echo "Syncing clat01 environment..."
+            argocd app sync clat01-namespace --grpc-web
+            argocd app sync app1-clat01 --grpc-web
+            argocd app sync app2-clat01 --grpc-web
+          fi
+
+      - name: Wait for sync completion
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+        run: |
+          echo "Waiting for applications to sync..."
+          argocd app wait --health --grpc-web \
+            app1-cldev01 app2-cldev01 \
+            app1-cldev02 app2-cldev02 \
+            app1-clat01 app2-clat01 \
+            --timeout 600
+
+      - name: Get sync status
+        if: always()
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+        run: |
+          echo "=== Application Sync Status ==="
+          argocd app list --grpc-web
+
+  notification:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: argocd-sync
+    if: always()
+    steps:
+      - name: Notify on success
+        if: needs.argocd-sync.result == 'success'
+        run: |
+          echo "✅ ArgoCD sync completed successfully"
+          # Add Slack/Teams notification here if needed
+
+      - name: Notify on failure
+        if: needs.argocd-sync.result == 'failure'
+        run: |
+          echo "❌ ArgoCD sync failed"
+          # Add Slack/Teams notification here if needed

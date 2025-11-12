@@ -1,0 +1,14 @@
+# Pipeline-generated ConfigMap placeholder
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app3-application-config
+  namespace: clat01
+  labels:
+    app: app3
+    environment: clat01
+    managed-by: devops-pipeline
+data:
+  nginx-routes.conf: |
+    # Auto-generated

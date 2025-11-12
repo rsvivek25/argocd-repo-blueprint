@@ -1,0 +1,34 @@
+---
+# Default Resource Quotas Template
+# Applied to namespaces to prevent resource exhaustion
+# Note: This is a base template; override per environment as needed
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: default-quota
+  # namespace: <set-per-environment>
+  labels:
+    managed-by: argocd
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "10"              # Total CPU requests across all pods
+    requests.memory: 20Gi           # Total memory requests
+    limits.cpu: "20"                # Total CPU limits
+    limits.memory: 40Gi             # Total memory limits
+    
+    # Storage
+    requests.storage: 100Gi         # Total storage requests
+    persistentvolumeclaims: "10"    # Max number of PVCs
+    
+    # Object counts
+    pods: "50"                      # Max pods in namespace
+    services: "20"                  # Max services
+    configmaps: "50"                # Max ConfigMaps
+    secrets: "50"                   # Max Secrets
+    services.loadbalancers: "2"     # Max LoadBalancer services
+    services.nodeports: "5"         # Max NodePort services
+    
+    # Network
+    count/ingresses.networking.k8s.io: "10"  # Max ingress objects

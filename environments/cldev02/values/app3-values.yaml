@@ -1,0 +1,31 @@
+# App3 overrides for cldev02 (API Gateway - Development)
+
+image:
+  repository: your-registry.dkr.ecr.us-east-1.amazonaws.com/app3
+  pullPolicy: Always
+  tag: "dev-latest"
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app3-cldev02-role
+
+env:
+  - name: ENVIRONMENT
+    value: "development"
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: API_BASE_URL
+    value: "http://app1.cldev02.svc.cluster.local"
+
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+  hosts:
+    - host: api.cldev02.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+nodeSelector:
+  workload-type: general

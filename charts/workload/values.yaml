@@ -1,0 +1,228 @@
+# Default values for workload chart
+# Override these values per environment in environments/<env>/values/
+
+# Application name (override per workload)
+nameOverride: ""
+fullnameOverride: ""
+
+# Number of pod replicas
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: nginx  # CHANGE THIS to your application image
+  pullPolicy: IfNotPresent
+  tag: "latest"      # CHANGE THIS to specific version tags
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+# - name: regcred
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/ROLE_NAME
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+# prometheus.io/scrape: "true"
+# prometheus.io/port: "8080"
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+# Container port configuration
+containerPort: 8080
+
+# Service configuration
+service:
+  enabled: true
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  annotations: {}
+
+# Ingress configuration (ALB)
+ingress:
+  enabled: false
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/xxx
+  hosts:
+    - host: app.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Liveness probe
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Startup probe (for slow-starting containers)
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 30
+
+# Node selector
+nodeSelector: {}
+# workload-type: general
+
+# Tolerations
+tolerations: []
+# - key: "workload-type"
+#   operator: "Equal"
+#   value: "compute-intensive"
+#   effect: "NoSchedule"
+
+# Affinity rules
+affinity: {}
+# podAntiAffinity:
+#   preferredDuringSchedulingIgnoredDuringExecution:
+#     - weight: 100
+#       podAffinityTerm:
+#         labelSelector:
+#           matchExpressions:
+#             - key: app.kubernetes.io/name
+#               operator: In
+#               values:
+#                 - workload
+#         topologyKey: kubernetes.io/hostname
+
+# Environment variables
+env: []
+# - name: ENVIRONMENT
+#   value: "development"
+# - name: DATABASE_HOST
+#   value: "db.example.com"
+
+# Environment variables from ConfigMap
+envFrom: []
+# - configMapRef:
+#     name: app-config
+# - secretRef:
+#     name: app-secrets
+
+# ConfigMap data (optional)
+configMap:
+  enabled: false
+  data: {}
+  # app.properties: |
+  #   key=value
+
+# Secret data (optional - use external secret management in production)
+secret:
+  enabled: false
+  data: {}
+  # API_KEY: base64encodedvalue
+
+# Persistent Volume Claim
+persistence:
+  enabled: false
+  storageClass: ebs-gp3
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  mountPath: /data
+  annotations: {}
+
+# Additional volumes
+volumes: []
+# - name: cache
+#   emptyDir: {}
+
+# Additional volume mounts
+volumeMounts: []
+# - name: cache
+#   mountPath: /tmp/cache
+
+# Init containers
+initContainers: []
+# - name: init-db
+#   image: busybox:1.35
+#   command: ['sh', '-c', 'until nc -z db 5432; do echo waiting for db; sleep 2; done;']
+
+# Sidecar containers
+sidecars: []
+# - name: log-forwarder
+#   image: fluent/fluent-bit:2.0
+#   volumeMounts:
+#     - name: logs
+#       mountPath: /var/log
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress: []

@@ -1,0 +1,47 @@
+---
+# Default Limit Ranges
+# Enforces default resource requests/limits on containers without explicit values
+# Prevents resource starvation and encourages best practices
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  # namespace: <set-per-environment>
+  labels:
+    managed-by: argocd
+spec:
+  limits:
+    # Container defaults
+    - type: Container
+      default:                    # Default limits (if not specified)
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:             # Default requests (if not specified)
+        cpu: 100m
+        memory: 128Mi
+      max:                        # Maximum allowed
+        cpu: "4"
+        memory: 8Gi
+      min:                        # Minimum required
+        cpu: 50m
+        memory: 64Mi
+      maxLimitRequestRatio:       # Max limit/request ratio
+        cpu: "10"
+        memory: "4"
+    
+    # Pod-level limits
+    - type: Pod
+      max:
+        cpu: "8"
+        memory: 16Gi
+      min:
+        cpu: 100m
+        memory: 128Mi
+    
+    # PVC limits
+    - type: PersistentVolumeClaim
+      max:
+        storage: 100Gi
+      min:
+        storage: 1Gi

@@ -1,0 +1,65 @@
+# App2 overrides for cldev01 (Storage-enabled workload)
+
+image:
+  repository: your-registry.dkr.ecr.us-east-1.amazonaws.com/app2  # CHANGE THIS
+  pullPolicy: Always
+  tag: "dev-latest"
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app2-cldev01-role  # CHANGE THIS
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+env:
+  - name: ENVIRONMENT
+    value: "development"
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: NAMESPACE
+    value: "cldev01"
+  - name: STORAGE_PATH
+    value: "/data"
+
+configMap:
+  enabled: true
+  data:
+    app.yaml: |
+      server:
+        port: 8080
+        timeout: 30s
+      storage:
+        path: /data
+        maxSize: 10GB
+      features:
+        analytics: false
+        caching: true
+
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+  hosts:
+    - host: app2.cldev01.example.com  # CHANGE THIS
+      paths:
+        - path: /
+          pathType: Prefix
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+nodeSelector:
+  workload-type: general
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"

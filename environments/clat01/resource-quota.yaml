@@ -1,0 +1,23 @@
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: clat01-quota
+  namespace: clat01
+  labels:
+    managed-by: argocd
+spec:
+  hard:
+    # Higher limits for acceptance testing
+    requests.cpu: "12"
+    requests.memory: 24Gi
+    limits.cpu: "24"
+    limits.memory: 48Gi
+    requests.storage: 100Gi
+    persistentvolumeclaims: "8"
+    pods: "40"
+    services: "15"
+    configmaps: "40"
+    secrets: "40"
+    services.loadbalancers: "2"
+    count/ingresses.networking.k8s.io: "8"

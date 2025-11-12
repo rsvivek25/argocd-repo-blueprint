@@ -1,0 +1,71 @@
+---
+# ArgoCD Root Application (App of Apps)
+# This is the bootstrap application that manages all other applications
+# Apply this first: kubectl apply -f argocd/root-app.yaml
+#
+# This root app discovers and applies:
+# 1. Platform infrastructure (storage, node pools) from argocd/platform-apps.yaml
+# 2. Environment namespaces from environments/*/namespace.yaml & resource-quota.yaml
+# 3. ApplicationSets from environments/*/applicationset.yaml
+#    (which then auto-generate workload applications)
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    # Platform infrastructure apps
+    - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+      targetRevision: main
+      path: argocd
+      directory:
+        include: 'platform-apps.yaml'
+    
+    # Environment namespaces and quotas (sync wave 2)
+    - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+      targetRevision: main
+      path: environments
+      directory:
+        recurse: true
+        include: '{namespace.yaml,resource-quota.yaml}'
+    
+    # Environment ApplicationSets (sync wave 3)
+    - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+      targetRevision: main
+      path: environments
+      directory:
+        recurse: true
+        include: 'applicationset.yaml'
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  
+  syncPolicy:
+    automated:
+      prune: true       # Remove resources not in Git
+      selfHeal: true    # Sync when cluster state drifts from Git
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true  # Allow creating namespaces
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  # Ignore differences in certain fields
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Ignore if using HPA

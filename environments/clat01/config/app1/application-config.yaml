@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app1-application-config
+  namespace: clat01
+  labels:
+    app: app1
+    environment: clat01
+    managed-by: devops-pipeline
+  annotations:
+    description: "Production-like application configuration"
+    pipeline.run: "RELEASE-5678"
+    generated.at: "2025-11-12T10:30:00Z"
+data:
+  application.yaml: |
+    app:
+      name: app1
+      environment: clat01
+      version: "1.2.0"
+    
+    database:
+      host: at-database.clat01.svc.cluster.local
+      port: 5432
+      name: app1_acceptance
+      pool:
+        min: 5
+        max: 50
+        timeout: 30s
+      ssl:
+        enabled: true
+        mode: require
+    
+    cache:
+      enabled: true
+      ttl: 600
+      type: redis
+      host: redis.clat01.svc.cluster.local
+      cluster: true
+    
+    features:
+      newUI: true
+      betaFeatures: false
+      analytics: true
+    
+    logging:
+      level: info
+      format: json
+      destinations:
+        - console
+        - cloudwatch
+    
+    security:
+      cors:
+        enabled: true
+        origins:
+          - "https://clat01.example.com"
+          - "https://acceptance.example.com"
+      rateLimit:
+        enabled: true
+        requestsPerMinute: 500
+  
+  endpoints.properties: |
+    api.base.url=https://api.clat01.example.com
+    auth.service.url=https://auth.clat01.example.com
+    payment.gateway.url=https://acceptance.payment-provider.com
+    notification.service.url=http://notifications.clat01.svc.cluster.local
+  
+  features.json: |
+    {
+      "featureFlags": {
+        "enableNewCheckout": true,
+        "enableRecommendations": true,
+        "enableABTesting": true,
+        "enableAdvancedSearch": true
+      }
+    }

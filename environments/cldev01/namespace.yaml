@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cldev01
+  labels:
+    environment: development
+    managed-by: argocd
+    team: platform
+    cost-center: engineering

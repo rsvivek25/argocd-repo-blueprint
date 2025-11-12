@@ -1,0 +1,48 @@
+# App1 overrides for cldev01 (Development Environment 01)
+# Only values that differ from charts/app1/values.yaml
+
+image:
+  repository: your-registry.dkr.ecr.us-east-1.amazonaws.com/app1  # CHANGE THIS
+  pullPolicy: Always  # Always pull latest in dev
+  tag: "dev-latest"
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app1-cldev01-role  # CHANGE THIS
+
+env:
+  - name: ENVIRONMENT
+    value: "development"
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: NAMESPACE
+    value: "cldev01"
+  - name: DATABASE_HOST
+    value: "dev-database.cldev01.svc.cluster.local"
+
+configMap:
+  enabled: true
+  data:
+    app.properties: |
+      server.port=8080
+      feature.newUI=false
+
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/tags: Environment=development,Team=platform,App=app1
+  hosts:
+    - host: app1.cldev01.example.com  # CHANGE THIS
+      paths:
+        - path: /
+          pathType: Prefix
+
+nodeSelector:
+  workload-type: general
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"

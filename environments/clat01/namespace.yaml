@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clat01
+  labels:
+    environment: acceptance-test
+    managed-by: argocd
+    team: platform
+    cost-center: engineering

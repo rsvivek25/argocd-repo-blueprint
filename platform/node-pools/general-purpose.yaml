@@ -1,0 +1,60 @@
+---
+# General Purpose Node Pool
+# For standard workloads with balanced compute/memory requirements
+
+apiVersion: eks.amazonaws.com/v1
+kind: NodePool
+metadata:
+  name: general-purpose
+  labels:
+    managed-by: argocd
+    node-pool-type: general
+spec:
+  # Instance types for the node pool
+  instanceTypes:
+    - m6i.large      # 2 vCPU, 8 GiB RAM
+    - m6i.xlarge     # 4 vCPU, 16 GiB RAM
+    - m6i.2xlarge    # 8 vCPU, 32 GiB RAM
+  
+  # Capacity type: ON_DEMAND or SPOT
+  capacityType: ON_DEMAND
+  
+  # Node labels applied to all nodes in this pool
+  labels:
+    workload-type: general
+    node-pool: general-purpose
+  
+  # Taints (none for general purpose - accepts all workloads)
+  taints: []
+  
+  # Scaling configuration
+  scaling:
+    minSize: 2
+    maxSize: 10
+    desiredSize: 3
+  
+  # Disk configuration
+  diskSize: 100  # GB
+  
+  # AWS tags for cost allocation and governance
+  tags:
+    Environment: shared
+    ManagedBy: ArgoCD
+    CostCenter: platform
+    NodePool: general-purpose
+  
+  # Subnet selection (optional - uses cluster subnets by default)
+  # subnetSelector:
+  #   karpenter.sh/discovery: your-cluster-name
+  
+  # Security group selector (optional)
+  # securityGroupSelector:
+  #   karpenter.sh/discovery: your-cluster-name
+  
+  # AMI Family
+  amiFamily: AL2  # Amazon Linux 2
+  
+  # User data for node initialization (optional)
+  # userData: |
+  #   #!/bin/bash
+  #   echo "Custom initialization script"

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app2-application-config
+  namespace: cldev01
+  labels:
+    app: app2
+    environment: cldev01
+    managed-by: devops-pipeline
+data:
+  application.yaml: |
+    app:
+      name: app2
+      environment: cldev01
+      type: worker
+    
+    worker:
+      threads: 4
+      queue: rabbitmq
+      batchSize: 100

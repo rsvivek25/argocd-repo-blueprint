@@ -1,0 +1,54 @@
+---
+# ApplicationSet for clat01 environment
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: clat01-workloads
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+        revision: main
+        directories:
+          - path: charts/*
+  template:
+    metadata:
+      name: '{{path.basename}}-clat01'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      sources:
+        # Source 1: Helm chart with environment-specific values
+        - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+          targetRevision: main
+          path: '{{path}}'
+          helm:
+            releaseName: '{{path.basename}}'
+            valueFiles:
+              - ../../environments/clat01/values/{{path.basename}}-values.yaml
+        # Source 2: External ConfigMaps (pipeline-generated)
+        - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+          targetRevision: main
+          path: 'environments/clat01/config/{{path.basename}}'
+          directory:
+            recurse: false
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: clat01
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas

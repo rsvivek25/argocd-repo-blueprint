@@ -1,0 +1,56 @@
+# .gitignore for ArgoCD GitOps Repository
+
+# Never commit actual secrets
+*.key
+*.pem
+*.crt
+secrets.yaml
+secret-*.yaml
+
+# Helm
+.helm/
+*.tgz
+charts/*/charts/
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+temp/
+tmp/
+
+# ArgoCD local configs (if using argocd CLI locally)
+.argocd-local/
+
+# Terraform state (if managing infrastructure)
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Node
+node_modules/
+npm-debug.log
+
+# Documentation build artifacts
+docs/_build/
+
+# Test outputs
+test-results/
+coverage/

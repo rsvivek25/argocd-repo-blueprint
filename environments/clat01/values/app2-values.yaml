@@ -1,0 +1,89 @@
+# App2 overrides for clat01
+
+replicaCount: 2
+
+image:
+  repository: your-registry.dkr.ecr.us-east-1.amazonaws.com/app2
+  tag: "v2.1.0"
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app2-clat01-role
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+
+env:
+  - name: ENVIRONMENT
+    value: "acceptance"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: NAMESPACE
+    value: "clat01"
+  - name: STORAGE_PATH
+    value: "/data"
+  - name: ENABLE_ANALYTICS
+    value: "true"
+
+configMap:
+  enabled: true
+  data:
+    app.yaml: |
+      server:
+        port: 8080
+        timeout: 30s
+      storage:
+        path: /data
+        maxSize: 20GB
+      features:
+        analytics: true
+        caching: true
+
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+  hosts:
+    - host: app2.clat01.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+persistence:
+  enabled: true
+  size: 20Gi
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - app2
+          topologyKey: kubernetes.io/hostname
+
+nodeSelector:
+  workload-type: general
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

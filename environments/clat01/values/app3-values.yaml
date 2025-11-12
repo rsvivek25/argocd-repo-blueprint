@@ -1,0 +1,160 @@
+# App3 overrides for clat01 (API Gateway - Production-like with HTTPS)
+
+replicaCount: 3  # High availability
+
+image:
+  repository: your-registry.dkr.ecr.us-east-1.amazonaws.com/app3
+  tag: "v1.5.0"  # Specific version
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app3-clat01-role
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+env:
+  - name: ENVIRONMENT
+    value: "acceptance"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: API_BASE_URL
+    value: "http://app1.clat01.svc.cluster.local"
+  - name: RATE_LIMIT_ENABLED
+    value: "true"
+  - name: CORS_ENABLED
+    value: "true"
+
+configMap:
+  enabled: true
+  data:
+    nginx.conf: |
+      server {
+        listen 8080;
+        location / {
+          proxy_pass http://app1.clat01.svc.cluster.local;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        location /api {
+          proxy_pass http://app2.clat01.svc.cluster.local;
+        }
+      }
+
+# Advanced ingress with HTTPS, WAF, and multiple domains
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/success-codes: "200,301,302"
+    # HTTPS with SSL redirect
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    # ACM Certificate for HTTPS (CHANGE THIS)
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx
+    # WAF integration
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-1:123456789012:regional/webacl/api-protection/xxxxxxxx
+    # Additional security
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60,deletion_protection.enabled=true
+    # Tags for cost allocation
+    alb.ingress.kubernetes.io/tags: Environment=acceptance,Team=platform,App=app3,Type=api-gateway,CostCenter=engineering
+    # Custom response headers
+    alb.ingress.kubernetes.io/actions.response-headers: |
+      {"Type":"fixed-response","FixedResponseConfig":{"ContentType":"text/plain","StatusCode":"200","MessageBody":"OK"}}
+  hosts:
+    - host: api.clat01.example.com  # CHANGE THIS
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: gateway.clat01.example.com  # CHANGE THIS
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: api-v2.clat01.example.com  # CHANGE THIS - versioned API
+      paths:
+        - path: /v2
+          pathType: Prefix
+
+# Pod anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - app3
+          topologyKey: kubernetes.io/hostname
+      - weight: 50
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - app3
+          topologyKey: topology.kubernetes.io/zone  # Spread across AZs
+
+nodeSelector:
+  workload-type: general
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # Ensure at least 2 pods during updates
+
+# Network policy for ingress workload
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: app1
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: app2
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:  # DNS egress
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53

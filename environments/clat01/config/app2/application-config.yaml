@@ -1,0 +1,16 @@
+# Pipeline-generated ConfigMap placeholder
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app2-application-config
+  namespace: clat01
+  labels:
+    app: app2
+    environment: clat01
+    managed-by: devops-pipeline
+data:
+  application.yaml: |
+    app:
+      name: app2
+      environment: clat01

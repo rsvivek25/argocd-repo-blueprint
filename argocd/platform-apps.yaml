@@ -1,0 +1,54 @@
+---
+# Platform Infrastructure Applications
+# Manages cluster-wide resources: storage classes, node pools, etc.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-storage
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"  # Deploy before workloads
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+    targetRevision: main
+    path: platform/storage
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system  # Storage classes are cluster-scoped
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-node-pools
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+    targetRevision: main
+    path: platform/node-pools
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

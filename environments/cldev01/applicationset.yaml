@@ -1,0 +1,56 @@
+---
+# ApplicationSet for cldev01 environment
+# Automatically generates Applications for all charts in charts/ directory
+# with values from this environment's values/ directory
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cldev01-workloads
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+        revision: main
+        directories:
+          - path: charts/*
+  template:
+    metadata:
+      name: '{{path.basename}}-cldev01'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      sources:
+        # Source 1: Helm chart with environment-specific values
+        - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+          targetRevision: main
+          path: '{{path}}'
+          helm:
+            releaseName: '{{path.basename}}'
+            valueFiles:
+              - ../../environments/cldev01/values/{{path.basename}}-values.yaml
+        # Source 2: External ConfigMaps (pipeline-generated)
+        - repoURL: https://github.com/your-org/argocd-pilot.git  # CHANGE THIS
+          targetRevision: main
+          path: 'environments/cldev01/config/{{path.basename}}'
+          directory:
+            recurse: false
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: cldev01
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          jsonPointers:
+            - /spec/replicas

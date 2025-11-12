@@ -1,0 +1,24 @@
+---
+# EBS Storage Class for AWS EKS
+# Provides block storage using Amazon EBS CSI Driver
+# Use Cases: Databases, stateful applications requiring block storage
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  labels:
+    managed-by: argocd
+    storage-type: block
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3                    # General Purpose SSD (gp3)
+  encrypted: "true"            # Enable encryption at rest
+  iops: "3000"                 # Baseline IOPS for gp3
+  throughput: "125"            # Baseline throughput (MiB/s)
+  fsType: ext4
+volumeBindingMode: WaitForFirstConsumer  # Bind PV only when pod is scheduled
+allowVolumeExpansion: true               # Allow volume resizing
+reclaimPolicy: Delete                    # Delete EBS volume when PVC is deleted

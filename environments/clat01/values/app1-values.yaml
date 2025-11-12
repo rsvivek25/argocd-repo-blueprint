@@ -1,0 +1,84 @@
+# App1 overrides for clat01 (Acceptance Test - Production-like)
+
+# Multiple replicas for HA testing
+replicaCount: 2
+
+image:
+  repository: your-registry.dkr.ecr.us-east-1.amazonaws.com/app1
+  tag: "v1.2.0"  # Specific version for testing
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app1-clat01-role
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 75
+
+env:
+  - name: ENVIRONMENT
+    value: "acceptance"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: NAMESPACE
+    value: "clat01"
+  - name: DATABASE_HOST
+    value: "at-database.clat01.svc.cluster.local"
+  - name: CACHE_ENABLED
+    value: "true"
+
+configMap:
+  enabled: true
+  data:
+    app.properties: |
+      server.port=8080
+      feature.newUI=true
+      cache.ttl=300
+
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/xxx
+  hosts:
+    - host: app1.clat01.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - app1
+          topologyKey: kubernetes.io/hostname
+
+nodeSelector:
+  workload-type: general
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

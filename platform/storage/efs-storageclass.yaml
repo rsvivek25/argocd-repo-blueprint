@@ -1,0 +1,27 @@
+---
+# EFS Storage Class for AWS EKS
+# Provides shared file storage using Amazon EFS CSI Driver
+# Use Cases: Shared storage, multi-pod read/write access, media files
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-sc
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+  labels:
+    managed-by: argocd
+    storage-type: shared-filesystem
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap         # EFS Access Point mode
+  fileSystemId: fs-XXXXXXXXXX      # Replace with your EFS filesystem ID
+  directoryPerms: "700"            # Directory permissions
+  gidRangeStart: "1000"            # Starting GID for dynamic provisioning
+  gidRangeEnd: "2000"              # Ending GID
+  basePath: "/dynamic_provisioning" # Base path for access points
+volumeBindingMode: Immediate
+reclaimPolicy: Delete
+mountOptions:
+  - tls                            # Enable encryption in transit
+  - iam                            # Use IAM for authentication

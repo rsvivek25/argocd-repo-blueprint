@@ -1,0 +1,63 @@
+# App3 overrides for cldev01 (API Gateway/Frontend - Development)
+
+replicaCount: 1
+
+image:
+  repository: your-registry.dkr.ecr.us-east-1.amazonaws.com/app3  # CHANGE THIS
+  pullPolicy: Always
+  tag: "dev-latest"
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/app3-cldev01-role  # CHANGE THIS
+
+env:
+  - name: ENVIRONMENT
+    value: "development"
+  - name: LOG_LEVEL
+    value: "debug"
+  - name: API_BASE_URL
+    value: "http://app1.cldev01.svc.cluster.local"
+
+configMap:
+  enabled: true
+  data:
+    nginx.conf: |
+      server {
+        listen 8080;
+        location / {
+          proxy_pass http://app1.cldev01.svc.cluster.local;
+          proxy_set_header Host $host;
+        }
+      }
+
+# Ingress configuration - HTTP only for dev
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'  # HTTP only in dev
+    alb.ingress.kubernetes.io/tags: Environment=development,Team=platform,App=app3,Type=api-gateway
+    # Path-based routing
+    alb.ingress.kubernetes.io/conditions.api: |
+      [{"field":"path-pattern","pathPatternConfig":{"values":["/api/*"]}}]
+  hosts:
+    - host: api.cldev01.example.com  # CHANGE THIS
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: gateway.cldev01.example.com  # CHANGE THIS - alternative domain
+      paths:
+        - path: /
+          pathType: Prefix
+
+nodeSelector:
+  workload-type: general
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
